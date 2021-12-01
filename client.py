@@ -14,7 +14,6 @@ data = s.recv(100)
 print("Server sent: ", data)
 s.close()
 
-
 def send_files(fold_path):
     s.send(str.encode(os.path.dirname(fold_path)))
     for filename in os.listdir(fold_path):

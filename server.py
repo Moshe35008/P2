@@ -66,9 +66,6 @@ def generate_dir_tree(client_identifier):
             f.write(client_socket.recv(CHUNK_SIZE).decode("utf-8"))
 
 
-
-
-
 if __name__ == "__main__":
     w = Watcher(".", MyHandler())
     w.run()
