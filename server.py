@@ -116,6 +116,9 @@ def send_files():
 
 
 if __name__ == "__main__":
+    all_dict = {}  # the main dict
+    i = 2
+
     curr_path = os.path.dirname(sys.argv[0])
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('', int(sys.argv[1])))
@@ -126,11 +129,34 @@ if __name__ == "__main__":
         client_socket, client_address = server.accept()
         print('Connection from: ', client_address)
         data = client_socket.recv(128)
+        # if the client is new we give him a new id and add him to the main dict
+        # and create a copy of his folder.
         if data.decode("utf-8") == "new_client":
             new_id = id_generator()
             client_socket.send(new_id.encode())
             generate_dir_tree(new_id)
+            all_dict[new_id] = {client_address: []}
+        # the client is committing changes in the folder, we add the in the
+        # different computers of the client
+        elif "A1N2D_T3H4E5N" in data.decode("utf-8"):
+            new_id = data.decode("utf-8").split("A1N2D_T3H4E5N")[0]
+            # adding the task to all computers of client
+            for key, val in all_dict[new_id]:
+                if not key == client_address:
+                    all_dict[new_id][val].append(data)
+        # the client already logged in from this computer
+        # and is just re-connecting. sending him his actions to make.
+        elif client_address in all_dict[data.decode("utf-8")]:
+            # checking if this computer has actions to make.
+            if len(all_dict[data.decode("utf-8")][client_address]) != 0:
+                for action in all_dict[data.decode("utf-8")][client_address]:
+                    client_socket.send(action)
+                    # removing the action from clients to do
+                    all_dict[data.decode("utf-8")][client_address].remove(action)
+        # the client already connected but is connecting from another computer.
         else:
+            new_id = data
+            all_dict[new_id] = {client_address: []}
             send_files()
             # os.path.join(curr_path, data.decode("utf-8"))
 

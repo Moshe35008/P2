@@ -54,8 +54,9 @@ class MyHandler(FileSystemEventHandler):
                 detail = f.read()
         else:
             detail = "N1o2n3e"
-        message = message_type + after + path + after + the_new + after + detail
+        message = folder_id + after + message_type + after + path + after + the_new + after + detail
         print(message.split(after))
+        s.send(str.encode(message))
         self.ignore_modi = 2
 
     def on_moved(self, event):
@@ -70,8 +71,9 @@ class MyHandler(FileSystemEventHandler):
         for slash in slashes:
             path = path + slash + "\\"
         new_name = (event.dest_path).split('\\')[-1]
-        message = message_type + after + path + after + old_name + after + new_name
+        message = folder_id + after + message_type + after + path + after + old_name + after + new_name
         print(message.split(after))
+        s.send(str.encode(message))
         self.ignore_modi = 2
 
     def on_deleted(self, event):
@@ -85,12 +87,13 @@ class MyHandler(FileSystemEventHandler):
         slashes.remove(slashes[-1])
         for slash in slashes:
             path = path + slash + "\\"
-        message = message_type + after + path + after + old_name
+        message = folder_id + after + message_type + after + path + after + old_name
         print(message.split(after))
+        s.send(str.encode(message))
         self.ignore_modi = 2
 
     def on_modified(self, event):
-        if self.ignore_modi:
+        if self.ignore_modi != 0:
             self.ignore_modi -= 1
             return
         else:
@@ -112,8 +115,9 @@ class MyHandler(FileSystemEventHandler):
                     detail = f.read()
             else:
                 detail = "N1o2n3e"
-            message = message_type + after + path + after + the_new + after + detail
+            message = folder_id + after + message_type + after + path + after + the_new + after + detail
             print(message.split(after))
+            s.send(str.encode(message))
 
 
 def generate_dir_tree(client_identifier):
@@ -148,13 +152,72 @@ def send_files(fold_path):
             send_files(os.path.abspath(f))
 
 
+# message = folder_id + after + message_type + after + path + after + the_new + after + detail
+def create_name(message):
+    to_save = False
+    path = ""
+    for slash in message[2].split("\\"):  # the path sent
+        if os.path.basename(folder_path) == slash:
+            to_save = True
+        if to_save:
+            path.join(slash)
+    full_path = os.path.join(folder_path, path, message[3])
+    if os.path.isdir:
+        os.mkdir(full_path)
+    else:
+        with open(full_path, "w") as f:
+            if message[4] != "N1o2n3e":
+                f.write(message[4])
+
+
+# message = folder_id + after + message_type + after + path + after + old_name + after + new_name
+def move_name(message):
+    to_save = False
+    path = ""
+    for slash in message[2].split("\\"):  # the path sent
+        if os.path.basename(folder_path) == slash:
+            to_save = True
+        if to_save:
+            path.join(slash)
+    old_path = os.path.join(folder_path, path, message[3])
+    new_path = os.path.join(folder_path, path, message[4])
+    os.rename(old_path, new_path)
+
+
+def del_name(message):
+    to_save = False
+    path = ""
+    for slash in message[2].split("\\"):  # the path sent
+        if os.path.basename(folder_path) == slash:
+            to_save = True
+        if to_save:
+            path.join(slash)
+    full_path = os.path.join(folder_path, path, message[3])
+    os.remove(full_path)
+
+
+def change_name(message):
+    to_save = False
+    path = ""
+    for slash in message[2].split("\\"):  # the path sent
+        if os.path.basename(folder_path) == slash:
+            to_save = True
+        if to_save:
+            path.join(slash)
+    full_path = os.path.join(folder_path, path, message[3])
+    with open(full_path, "w") as f:
+        if message[4] != "N1o2n3e":
+            f.write(message[4])
+
+
 if "__name__==__main__":
+    utf = "utf-8"
     curr_path = os.path.dirname(sys.argv[0])
     is_new = 0
     server_ip = sys.argv[1]
     server_port = sys.argv[2]
     folder_path = sys.argv[3]
-    server_time = sys.argv[4]
+    sleep_time = float(sys.argv[4])
     folder_id = 0
     if len(sys.argv) < 6:
         is_new = 1
@@ -170,5 +233,23 @@ if "__name__==__main__":
         s.send(b'new_client')
         folder_id = s.recv(128)
         send_files(folder_path)
+    while True:
+        time.sleep(sleep_time)
+        data = s.recv(128)
+        # server did not want to send anything
+        if data.decode(utf) == "N1O2T3H4I5N6G7":
+            pass
+        # server is updating the client
+        else:
+            if data.decode(utf).split("A1N2D_T3H4E5N")[0] == folder_id:
+                if data.decode(utf).split("A1N2D_T3H4E5N")[1] == 1:
+                    create_name(data.decode(utf).split("A1N2D_T3H4E5N"))
+                if data.decode(utf).split("A1N2D_T3H4E5N")[1] == 2:
+                    move_name(data.decode(utf).split("A1N2D_T3H4E5N"))
+                if data.decode(utf).split("A1N2D_T3H4E5N")[1] == 3:
+                    del_name(data.decode(utf).split("A1N2D_T3H4E5N"))
+                if data.decode(utf).split("A1N2D_T3H4E5N")[1] == 4:
+                    change_name(data.decode(utf).split("A1N2D_T3H4E5N"))
+
     s.close()
     # send_files(folder_path)
