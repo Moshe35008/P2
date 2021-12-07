@@ -8,7 +8,7 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 CHUNK_SIZE = 1_000_000
-#dad
+
 
 def id_generator(size=128, chars=string.ascii_uppercase + string.ascii_lowercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -73,31 +73,54 @@ def generate_dir_tree(client_identifier):
         if '.' in name:
             f = open(name, 'a+')
             f.write(client_socket.recv(CHUNK_SIZE).decode("utf-8"))
-
-
-def send_files(fold_path):
-    client_socket.send(str.encode(os.path.dirname(fold_path)))
-    for filename in os.listdir(fold_path):
-        f = os.path.join(fold_path, filename)
-        # checking if it is a file
-        if os.path.isfile(f):
-            with open(f, "rb") as to_read:
-                while True:
-                    bytes_read = to_read.read(CHUNK_SIZE)
-                    if not bytes_read:
-                        break
-                    client_socket.send(str.encode(f))
-                    client_socket.send(bytes_read)
         else:
-            send_files(os.path.abspath(f))
+            generate_dir_tree(name)
+
+
+def send_files():
+    for path, dirs, files in os.walk('server'):
+        for file in files:
+            filename = os.path.join(path, file)
+            realpath = os.path.relpath(filename, 'server')
+            filesize = os.path.getsize(filename)
+
+            print(f'Sending {realpath}')
+
+            with open(filename, 'rb') as f:
+                client_socket.sendall(realpath.encode() + b'\n')
+                client_socket.sendall(str(filesize).encode() + b'\n')
+
+                # Send the file in chunks so large files can be handled.
+                while True:
+                    file_data = f.read(CHUNK_SIZE)
+                    if not file_data:
+                        break
+                    client_socket.sendall(data)
+
+
+# def send_files(fold_path):
+#     client_socket.send(str.encode(os.path.dirname(fold_path)))
+#     for filename in os.listdir(fold_path):
+#         f = os.path.join(fold_path, filename)
+#         # checking if it is a file
+#         if os.path.isfile(f):
+#             with open(f, "rb") as to_read:
+#                 while True:
+#                     bytes_read = to_read.read(CHUNK_SIZE)
+#                     if not bytes_read:
+#                         break
+#                     client_socket.send(str.encode(f))
+#                     client_socket.send(bytes_read)
+#         else:
+#             send_files(os.path.abspath(f))
 
 
 if __name__ == "__main__":
     curr_path = os.path.dirname(sys.argv[0])
-    w = Watcher(curr_path, MyHandler())
-    w.run()
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('', sys.argv[1]))
+    server.bind(('', int(sys.argv[1])))
+    # w = Watcher(curr_path, MyHandler())
+    # w.run()
     server.listen(5)
     while True:
         client_socket, client_address = server.accept()
@@ -108,7 +131,8 @@ if __name__ == "__main__":
             client_socket.send(new_id.encode())
             generate_dir_tree(new_id)
         else:
-            send_files(os.path.join(curr_path, data.decode("utf-8")))
+            send_files()
+            # os.path.join(curr_path, data.decode("utf-8"))
 
         print('Received: ', data)
         client_socket.send(data.upper())

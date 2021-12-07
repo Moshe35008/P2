@@ -9,7 +9,7 @@ from watchdog.observers import Observer
 CHUNK_SIZE = 1_000_000
 
 
-#dada
+# dada
 class Watcher:
 
     def __init__(self, directory=".", handler=FileSystemEventHandler()):
@@ -132,7 +132,7 @@ def generate_dir_tree(client_identifier):
 
 
 def send_files(fold_path):
-    s.send(str.encode(os.path.dirname(fold_path)))
+    s.send(str.encode(os.path.basename(fold_path)))
     for filename in os.listdir(fold_path):
         f = os.path.join(fold_path, filename)
         # checking if it is a file
@@ -149,29 +149,26 @@ def send_files(fold_path):
 
 
 if "__name__==__main__":
-    # curr_path = os.path.dirname(sys.argv[0])
-    # is_new = 0
-    # server_ip = sys.argv[1]
-    # server_port = sys.argv[2]
-    # folder_path = sys.argv[3]
-    # server_time = sys.argv[4]
-    # folder_id = 0
-    # if len(sys.argv) < 6:
-    #     is_new = 1
-    # else:
-    #     folder_id = sys.argv[5]
-    w = Watcher(curr_path, MyHandler())
-    w.run()
+    curr_path = os.path.dirname(sys.argv[0])
+    is_new = 0
+    server_ip = sys.argv[1]
+    server_port = sys.argv[2]
+    folder_path = sys.argv[3]
+    server_time = sys.argv[4]
+    folder_id = 0
+    if len(sys.argv) < 6:
+        is_new = 1
+    else:
+        folder_id = sys.argv[5]
+    # w = Watcher(curr_path, MyHandler())
+    # w.run()
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((server_ip, server_port))
+    s.connect((server_ip, int(server_port)))
     if is_new == 0:
         s.send(folder_id.encode())
     else:
         s.send(b'new_client')
         folder_id = s.recv(128)
-        send_files(curr_path)
-
-    s.send(b'208493064')
-    data = s.recv(100)
+        send_files(folder_path)
     s.close()
     # send_files(folder_path)
