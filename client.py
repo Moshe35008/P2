@@ -227,6 +227,7 @@ if "__name__==__main__":
         is_new = 1
     else:
         folder_id = sys.argv[5]
+        folder_path = curr_path
 
     # WATCHDOG
     event_handler = MyHandler()

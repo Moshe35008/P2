@@ -81,7 +81,7 @@ def send_files(fold_path):
             # message = folder_id + after + message_type + after + path + after + the_new + after + detail
             client_socket.send(
                 (new_id + after + "1" + after + fold_path + after + filename + after + "CREATEIT").encode())
-            data = client_socket.recv(CHUNK_SIZE)
+            #data = client_socket.recv(CHUNK_SIZE)
             send_files(os.path.join(fold_path, filename))
 
 
@@ -178,9 +178,12 @@ if __name__ == "__main__":
             all_dict[new_id] = {client_address[0]: []}
         # the client is committing changes in the folder, we add the in the
         # different computers of the client
+        elif len(str(data.decode("utf-8"))) == 129 and data.decode("utf-8")[128] == "%":
+            new_id = data.decode("utf-8")[:-1]
+            send_files(os.path.join(curr_path, data.decode("utf-8")[:-1]))
 
-        elif "A1N2D" in data.decode("utf-8") or "T3H4E5N" in data.decode("utf-8"):
-            packets = data.decode("utf-8").split("^")[:-1]
+        elif "A1N2D" in data.decode("utf-8")[:-1] or "T3H4E5N" in data.decode("utf-8")[:-1]:
+            packets = data.decode("utf-8")[:-1].split("^")[:-1]
             for packet in packets:
                 if "A1N2D" in packet:
                     id_folder_path = os.path.join(this_path, packet.split("A1N2D")[0])
@@ -204,23 +207,22 @@ if __name__ == "__main__":
                         change_name(packet.split("T3H4E5N"))
 
                     # adding the task to all computers of client
-                   # all_dict[]
+                    # all_dict[]
                     for key in all_dict.keys():
                         for key2 in all_dict[key].keys():
                             if not key2 == client_address[0]:
                                 all_dict[key][key2].append(data)
         # the client already logged in from this computer
         # and is just re-connecting. sending him his actions to make.
-        elif client_address[0] in all_dict[data.decode("utf-8")].keys():
+        elif client_address[0] in all_dict[data.decode("utf-8")[:-1]].keys():
             # checking if this computer has actions to make.
-            client_socket.send(f"{len(all_dict[data.decode('utf-8')][client_address[0]])}".encode())
-            if len(all_dict[data.decode("utf-8")][client_address[0]]) != 0:
-                for action in all_dict[data.decode("utf-8")][client_address[0]]:
+            client_socket.send(f"{len(all_dict[data.decode('utf-8')[:-1]][client_address[0]])}".encode())
+            if len(all_dict[data.decode("utf-8")[:-1]][client_address[0]]) != 0:
+                for action in all_dict[data.decode("utf-8")[:-1]][client_address[0]]:
                     client_socket.send(action)
                     # removing the action from clients to do
-                    all_dict[data.decode("utf-8")][client_address[0]].remove(action)
-            else:
-                send_files(os.path.join(curr_path, data.decode("utf-8")))
+                    all_dict[data.decode("utf-8")[:-1]][client_address[0]].remove(action)
+
         # the client already connected but is connecting from another new computer.
         else:
             pass
